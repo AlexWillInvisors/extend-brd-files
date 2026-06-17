@@ -1,0 +1,356 @@
+#!/usr/bin/env python3
+"""
+brd_edit.py — safe, tree-based editing for the Invisors Extend BRD template.
+
+WHY THIS EXISTS
+String-splicing document.xml (replacing a <w:r>...<w:t>X</w:t></w:r> and appending
+"</w:r></w:p><w:p>...") repeatedly produces orphaned closing tags and run-in-run
+nesting that only surface at pack-time schema validation. Every operation here works
+on a parsed lxml tree instead, so the output is always well-formed and schema-legal
+by construction. Use this for ALL content insertion and tracked-change edits; do not
+hand-splice the XML.
+
+USAGE (import as a module from a fill script):
+
+    from brd_edit import BRD
+    doc = BRD("unpacked/word/document.xml")
+
+    # replace the visible text of the run that currently contains a placeholder
+    doc.set_run_text("Summary of our understanding", "Real BR opening prose...")
+
+    # insert new sibling paragraphs AFTER the paragraph containing an anchor string
+    doc.add_paragraphs_after(
+        "The problems this solution bridges:",
+        [
+            {"style": "ListParagraph", "num": 5, "runs": [("bullet one text", False)]},
+            {"style": "ListParagraph", "num": 5, "runs": [("bullet two text", False)]},
+        ],
+    )
+
+    # fill an empty table cell paragraph (by the cell's first <w:p> paraId, or by
+    # locating an empty data row in a table found via a header anchor)
+    doc.fill_table_rows("The following integrations", header_anchor=True, rows=[
+        [("Name", False)], ... ])  # see fill_table_rows docstring
+
+    # tracked-change: replace a phrase, marking deletion + insertion as "Claude"
+    doc.tracked_replace("retention policy considerations (e.g., 7 years)",
+                        "retention period of 7 years")
+
+    doc.save()  # writes back; then pack with the docx skill and VALIDATE
+
+ALWAYS run doc.lint() before save() — it asserts every <w:r> sits in a legal parent
+and every <w:p> is a legal child, catching structure errors before pack-time.
+"""
+
+import sys
+from lxml import etree
+
+W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+def w(tag): return f"{{{W}}}{tag}"
+NSMAP = {"w": W}
+
+# legal parents for a <w:r> (run); legal parents for a <w:p> (paragraph)
+RUN_OK_PARENTS = {w("p"), w("ins"), w("del"), w("hyperlink"), w("smartTag"),
+                  w("fldSimple"), w("dir"), w("bdo"), w("sdtContent")}
+PARA_OK_PARENTS = {w("body"), w("tc"), w("txbxContent"), w("hdr"), w("ftr"),
+                   w("sdtContent"), w("comment"), w("footnote"), w("endnote")}
+
+TRACK_AUTHOR = "Claude"
+TRACK_DATE = "2026-01-01T00:00:00Z"
+
+
+def _escape(t):
+    # lxml handles escaping when we set .text; this is only for sanity on raw use
+    return t
+
+
+class BRD:
+    def __init__(self, path):
+        self.path = path
+        parser = etree.XMLParser(remove_blank_text=False)
+        self.tree = etree.parse(path, parser)
+        self.root = self.tree.getroot()
+        self._ins_id = 1000  # tracked-change id counter
+
+    # ---- helpers to build elements ----
+    def _run(self, text, bold=False, sz="20"):
+        r = etree.SubElement(etree.Element(w("tmp")), w("r"))
+        rpr = etree.SubElement(r, w("rPr"))
+        if bold:
+            etree.SubElement(rpr, w("b"))
+        if sz:
+            etree.SubElement(rpr, w("sz")).set(w("val"), sz)
+            etree.SubElement(rpr, w("szCs")).set(w("val"), sz)
+        if len(rpr) == 0:
+            r.remove(rpr)
+        t = etree.SubElement(r, w("t"))
+        t.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+        t.text = text
+        return r
+
+    def _para(self, runs, style=None, num=None, sz="20"):
+        """runs: list of (text, bold) tuples."""
+        p = etree.Element(w("p"))
+        if style or num is not None:
+            ppr = etree.SubElement(p, w("pPr"))
+            if style:
+                etree.SubElement(ppr, w("pStyle")).set(w("val"), style)
+            if num is not None:
+                numpr = etree.SubElement(ppr, w("numPr"))
+                etree.SubElement(numpr, w("ilvl")).set(w("val"), "0")
+                etree.SubElement(numpr, w("numId")).set(w("val"), str(num))
+        for text, bold in runs:
+            p.append(self._run(text, bold=bold, sz=sz))
+        return p
+
+    # ---- text-finding ----
+    def _find_run_with_text(self, needle):
+        for t in self.root.iter(w("t")):
+            if t.text and needle in t.text:
+                return t
+        return None
+
+    def _find_para_with_text(self, needle):
+        t = self._find_run_with_text(needle)
+        if t is None:
+            return None
+        p = t
+        while p is not None and p.tag != w("p"):
+            p = p.getparent()
+        return p
+
+    # ---- public operations ----
+    def set_run_text(self, needle, new_text):
+        """Replace the full .text of the <w:t> that contains `needle`. Single match."""
+        matches = [t for t in self.root.iter(w("t")) if t.text and needle in t.text]
+        assert len(matches) == 1, f"set_run_text: {len(matches)} matches for {needle!r}"
+        matches[0].text = new_text
+        return self
+
+    def replace_paragraph_runs(self, needle, runs, keep_ppr=True, sz="20"):
+        """Replace ALL runs in the paragraph containing `needle` with new runs.
+        Preserves the paragraph's <w:pPr>. runs: list of (text, bold)."""
+        p = self._find_para_with_text(needle)
+        assert p is not None, f"replace_paragraph_runs: no paragraph for {needle!r}"
+        ppr = p.find(w("pPr"))
+        for child in list(p):
+            if child.tag == w("pPr") and keep_ppr:
+                continue
+            p.remove(child)
+        for text, bold in runs:
+            p.append(self._run(text, bold=bold, sz=sz))
+        return self
+
+    def add_paragraphs_after(self, needle, paras, sz="20"):
+        """Insert new sibling paragraphs immediately after the paragraph containing
+        `needle`. paras: list of dicts {runs:[(text,bold)], style?:str, num?:int}."""
+        anchor = self._find_para_with_text(needle)
+        assert anchor is not None, f"add_paragraphs_after: no paragraph for {needle!r}"
+        parent = anchor.getparent()
+        idx = list(parent).index(anchor)
+        for offset, spec in enumerate(paras, start=1):
+            p = self._para(spec["runs"], style=spec.get("style"),
+                           num=spec.get("num"), sz=sz)
+            parent.insert(idx + offset, p)
+        return self
+
+    def fill_empty_cell(self, para_id, runs, sz="20"):
+        """Fill an empty cell paragraph identified by its w14:paraId."""
+        PID = "{http://schemas.microsoft.com/office/word/2010/wordml}paraId"
+        target = None
+        for p in self.root.iter(w("p")):
+            if p.get(PID) == para_id:
+                target = p
+                break
+        assert target is not None, f"fill_empty_cell: no paragraph paraId={para_id}"
+        for text, bold in runs:
+            target.append(self._run(text, bold=bold, sz=sz))
+        return self
+
+    def fill_table_rows(self, header_anchor, rows, sz="20"):
+        """Find the table associated with `header_anchor`, clone its first data row
+        once per entry in `rows`, and fill each cell. The anchor may be either text
+        inside the table's header row OR intro text in the paragraph immediately
+        preceding the table. `rows` is a list of rows; each row a list of cells;
+        each cell a list of (text,bold) runs. Replaces existing data rows entirely."""
+        import copy
+        ht = self._find_run_with_text(header_anchor)
+        assert ht is not None, f"fill_table_rows: anchor {header_anchor!r} not found"
+        # walk up looking for an enclosing tbl
+        node = ht
+        while node is not None and node.tag != w("tbl"):
+            node = node.getparent()
+        tbl = node
+        if tbl is None:
+            # anchor is outside any table (e.g. an intro sentence) — find the next
+            # <w:tbl> sibling that appears after the anchor's paragraph in document order
+            anchor_p = self._find_para_with_text(header_anchor)
+            all_tbls = list(self.root.iter(w("tbl")))
+            anchor_pos = self._doc_order_index(anchor_p)
+            following = [t for t in all_tbls if self._doc_order_index(t) > anchor_pos]
+            assert following, f"fill_table_rows: no table after anchor {header_anchor!r}"
+            tbl = following[0]
+        trs = tbl.findall(w("tr"))
+        assert len(trs) >= 2, "fill_table_rows: need header + >=1 data row"
+        template_row = trs[1]
+        for tr in trs[1:]:
+            tbl.remove(tr)
+        for row in rows:
+            new_tr = copy.deepcopy(template_row)
+            cells = new_tr.findall(w("tc"))
+            assert len(cells) == len(row), \
+                f"fill_table_rows: row has {len(row)} cells, table has {len(cells)}"
+            for tc, cell_runs in zip(cells, row):
+                p = tc.find(w("p"))
+                for child in list(p):
+                    if child.tag != w("pPr"):
+                        p.remove(child)
+                for text, bold in cell_runs:
+                    p.append(self._run(text, bold=bold, sz=sz))
+                for extra in tc.findall(w("p"))[1:]:
+                    tc.remove(extra)
+            tbl.append(new_tr)
+        return self
+
+    def _doc_order_index(self, el):
+        """Position of an element in document order (for 'is X after Y' tests)."""
+        for i, node in enumerate(self.root.iter()):
+            if node is el:
+                return i
+        return -1
+
+    # ---- tracked changes ----
+    def _next_id(self):
+        self._ins_id += 1
+        return str(self._ins_id)
+
+    def tracked_replace(self, old_text, new_text):
+        """Tracked-change replace: find the run whose <w:t> contains old_text, split
+        it so old_text becomes a <w:del> and new_text an adjacent <w:ins>, both
+        authored as Claude. Surrounding text in the same run is preserved as plain
+        runs. Single match."""
+        matches = [t for t in self.root.iter(w("t")) if t.text and old_text in t.text]
+        assert len(matches) == 1, f"tracked_replace: {len(matches)} matches for {old_text!r}"
+        t = matches[0]
+        r = t.getparent()                 # the <w:r>
+        p = r.getparent()                 # the <w:p> (or ins/del/hyperlink)
+        rpr = r.find(w("rPr"))
+        before, _, after = t.text.partition(old_text)
+        idx = list(p).index(r)
+        p.remove(r)
+        new_nodes = []
+        if before:
+            new_nodes.append(self._plain_run(before, rpr))
+        new_nodes.append(self._del_run(old_text, rpr))
+        new_nodes.append(self._ins_run(new_text, rpr))
+        if after:
+            new_nodes.append(self._plain_run(after, rpr))
+        for offset, node in enumerate(new_nodes):
+            p.insert(idx + offset, node)
+        return self
+
+    def tracked_insert_paragraphs_after(self, needle, paras, sz="20"):
+        """Insert new paragraphs after the paragraph with `needle`, each wholly
+        wrapped as a tracked insertion (so reviewers can accept/reject)."""
+        anchor = self._find_para_with_text(needle)
+        assert anchor is not None, f"tracked_insert: no paragraph for {needle!r}"
+        parent = anchor.getparent()
+        idx = list(parent).index(anchor)
+        for offset, spec in enumerate(paras, start=1):
+            p = etree.Element(w("p"))
+            ppr = etree.SubElement(p, w("pPr"))
+            if spec.get("style"):
+                etree.SubElement(ppr, w("pStyle")).set(w("val"), spec["style"])
+            if spec.get("num") is not None:
+                numpr = etree.SubElement(ppr, w("numPr"))
+                etree.SubElement(numpr, w("ilvl")).set(w("val"), "0")
+                etree.SubElement(numpr, w("numId")).set(w("val"), str(spec["num"]))
+            # mark the paragraph mark itself as inserted
+            mrpr = etree.SubElement(ppr, w("rPr"))
+            ins_mark = etree.SubElement(mrpr, w("ins"))
+            ins_mark.set(w("id"), self._next_id())
+            ins_mark.set(w("author"), TRACK_AUTHOR)
+            ins_mark.set(w("date"), TRACK_DATE)
+            for text, bold in spec["runs"]:
+                p.append(self._ins_run(text, None, bold=bold, sz=sz))
+            parent.insert(idx + offset, p)
+        return self
+
+    def _plain_run(self, text, rpr_template):
+        r = etree.Element(w("r"))
+        if rpr_template is not None:
+            import copy
+            r.append(copy.deepcopy(rpr_template))
+        tt = etree.SubElement(r, w("t"))
+        tt.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+        tt.text = text
+        return r
+
+    def _del_run(self, text, rpr_template):
+        d = etree.Element(w("del"))
+        d.set(w("id"), self._next_id())
+        d.set(w("author"), TRACK_AUTHOR)
+        d.set(w("date"), TRACK_DATE)
+        r = etree.SubElement(d, w("r"))
+        if rpr_template is not None:
+            import copy
+            r.append(copy.deepcopy(rpr_template))
+        dt = etree.SubElement(r, w("delText"))
+        dt.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+        dt.text = text
+        return d
+
+    def _ins_run(self, text, rpr_template, bold=False, sz=None):
+        ins = etree.Element(w("ins"))
+        ins.set(w("id"), self._next_id())
+        ins.set(w("author"), TRACK_AUTHOR)
+        ins.set(w("date"), TRACK_DATE)
+        r = etree.SubElement(ins, w("r"))
+        if rpr_template is not None:
+            import copy
+            r.append(copy.deepcopy(rpr_template))
+        elif bold or sz:
+            rpr = etree.SubElement(r, w("rPr"))
+            if bold:
+                etree.SubElement(rpr, w("b"))
+            if sz:
+                etree.SubElement(rpr, w("sz")).set(w("val"), sz)
+                etree.SubElement(rpr, w("szCs")).set(w("val"), sz)
+        tt = etree.SubElement(r, w("t"))
+        tt.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+        tt.text = text
+        return ins
+
+    # ---- validation ----
+    def lint(self):
+        """Assert structural legality before saving. Raises on the exact failure
+        classes that bit the string-splice approach: run-in-run, run as a direct
+        child of body/tc/tr, paragraph in an illegal parent."""
+        problems = []
+        for r in self.root.iter(w("r")):
+            parent = r.getparent()
+            if parent.tag not in RUN_OK_PARENTS:
+                problems.append(f"<w:r> in illegal parent <{etree.QName(parent).localname}>: "
+                                f"{''.join(r.itertext())[:60]!r}")
+        for p in self.root.iter(w("p")):
+            parent = p.getparent()
+            if parent.tag not in PARA_OK_PARENTS:
+                problems.append(f"<w:p> in illegal parent <{etree.QName(parent).localname}>")
+        if problems:
+            raise AssertionError("lint failed:\n  " + "\n  ".join(problems[:10]))
+        return self
+
+    def save(self, path=None):
+        self.lint()
+        out = path or self.path
+        self.tree.write(out, xml_declaration=True, encoding="UTF-8", standalone=True)
+        return out
+
+
+if __name__ == "__main__":
+    # smoke test: load, lint, report
+    if len(sys.argv) > 1:
+        doc = BRD(sys.argv[1])
+        doc.lint()
+        nps = len(list(doc.root.iter(w("p"))))
+        print(f"loaded {sys.argv[1]}: {nps} paragraphs, lint OK")
