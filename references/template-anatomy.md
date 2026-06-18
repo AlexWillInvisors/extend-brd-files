@@ -85,6 +85,16 @@ python /mnt/skills/public/docx/scripts/office/pack.py unpacked/ output.docx --or
 - Use the **Edit tool for string replacement**, not a Python script (per the docx
   skill). The unpack step pretty-prints and merges runs, so placeholder text is
   usually contiguous in one `<w:t>`.
+- **Split-run placeholders.** A few placeholders are NOT contiguous in the raw XML —
+  Word splits them across runs (the title `[Extend/BoW App Name]` is `[`+`Extend`+`/`
+  +`BoW`+` App Name]` with `<w:proofErr>` spell markers interleaved; the Business
+  Requirements "Summary of our understanding…" sentence is split too). A plain Edit on
+  the raw file then finds nothing. `brd_edit.py` handles this automatically: its
+  text-anchor methods call `merge_runs()` (which merges adjacent same-property runs —
+  comparing `rPr` by exclusive C14N so namespace noise doesn't block it — and drops
+  `proofErr` markers) the first time an anchor isn't found, so anchors resolve **with
+  or without** the docx skill's `unpack.py`. If you hand-edit instead of using the
+  helper, run `unpack.py` first or these anchors won't match.
 - **Smart quotes**: when adding apostrophes/quotes, use XML entities
   (`&#x2019;` for ’, `&#x201C;`/`&#x201D;` for “ ”) so they render as professional
   typography. The example uses smart quotes throughout (user's, "el" records).
@@ -158,6 +168,10 @@ Operations:
   `<w:ins>`, authored as Claude, surrounding text preserved.
 - `tracked_insert_paragraphs_after(needle, paras)` — insert whole new paragraphs as
   tracked insertions (paragraph mark marked inserted too).
+- `merge_runs()` — consolidates adjacent runs that share run properties and drops
+  `proofErr` markers, making split-run placeholders contiguous. Called automatically
+  (lazily) by the text-anchor methods when an anchor isn't found, so you rarely call
+  it directly; it's idempotent and semantically invisible (no rendered-text change).
 - `lint()` — asserts every `<w:r>` and `<w:p>` sits in a legal parent. `save()`
   calls it automatically; call it yourself mid-edit to fail fast.
 

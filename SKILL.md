@@ -15,6 +15,7 @@ description: >-
   Do NOT use for internal design docs, ROM/scoping estimates (that's the scoping
   playbook), or non-Extend Word documents.
 license: Proprietary
+version: 1.0.0
 ---
 
 # Extend BRD authoring
@@ -38,6 +39,22 @@ for those mechanics before touching the file — this skill does not duplicate t
 
 Never start a BRD with docx-js. Never hand-build the cover or TOC. Start from the
 asset.
+
+### Dependencies & runtime
+
+- **`brd_edit.py` requires `lxml`** (`pip install lxml`). It is the required tool for
+  all content insertion and tracked-change edits (see `references/template-anatomy.md`).
+- **Unpack / pack / validate** the `.docx` with the `docx` skill's scripts when they're
+  available (`/mnt/skills/public/docx/` in Anthropic's skill runtime). Read
+  `/mnt/skills/public/docx/SKILL.md` for those mechanics — this skill doesn't duplicate
+  them. If that skill isn't present, a plain unzip → edit → re-zip works too; a `.docx`
+  is just a zip.
+- **Self-sufficient editing core.** `brd_edit.py` now merges split runs itself
+  (`merge_runs()`, called lazily), so its text anchors resolve **with or without** the
+  docx skill's `unpack.py` run-merging step. You still need *some* way to unpack/repack
+  the file — but the editing logic no longer depends on `unpack.py` having run.
+- **`scripts/scrape_extend_limits.py`** (the limits crawler) is a separate, human-run
+  maintenance tool needing `playwright`; it is never invoked during a BRD session.
 
 ## Workflow
 

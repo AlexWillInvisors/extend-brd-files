@@ -9,7 +9,23 @@
       "Bash(python _test_limits.py)",
       "Bash(rm _test_limits.py)",
       "Bash(python _diag.py)",
-      "Bash(rm _diag.py)"
+      "Bash(rm _diag.py)",
+      "PowerShell(python -c \"import lxml; print\\('lxml', lxml.__version__\\)\" 2>&1)",
+      "PowerShell(python -c \"import docx; print\\('python-docx present'\\)\" 2>&1)",
+      "Bash(python _diag2.py)",
+      "Bash(rm _diag2.py)",
+      "Bash(python _smoke2.py)",
+      "Bash(rm _smoke2.py)",
+      "Bash(python _diag3.py)",
+      "Bash(rm _diag3.py)",
+      "Bash(python _smoke3.py)",
+      "Bash(rm _smoke3.py)",
+      "Bash(python _diag4.py)",
+      "Bash(rm _diag4.py)",
+      "Bash(python _smoke4.py)",
+      "Bash(rm _smoke4.py)",
+      "Bash(python _smoke5.py)",
+      "Bash(rm _smoke5.py)"
     ]
   }
 }
