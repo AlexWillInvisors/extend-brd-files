@@ -110,30 +110,49 @@ Security Domains.** Plus any project-specific subsections added here.
 
 Produced only when the user asks for a review (SKILL.md step 5), never on a plain
 authoring run. Lives as an Appendix subsection (`Heading2`), not a top-level
-section. Lighter than full RAID — two categories only:
+section. The **client-facing name stays "Open Questions & Risks"** — deliberately
+gentler than "RAID log" so it reads as constructive open items, not internal
+hedging — but it stores a full **RAID model plus Open Questions**: five buckets.
 
-- **Open Questions** — ambiguous, undecided, or assumed-without-confirmation
-  items. Each: the question, why it matters, and (in the chat version) who should
-  answer it.
-- **Risks** — things that could derail delivery or production. Each: the risk and
-  its impact.
+The five buckets:
+
+- **Open Questions** — ambiguous, undecided, or assumed-without-confirmation items.
+  Each: the question and why it matters (and, in chat, who should answer it).
+- **Risks** — things that *could* derail delivery or production (future/potential).
+  Each: the risk, its impact, and any mitigation.
+- **Actions** — concrete follow-ups to resolve the open items. Each: the action, its
+  owner, and status/target.
+- **Issues** — problems *already* present (current, not potential): a contradiction
+  between sections, a design that already exceeds a confirmed limit, a missing piece.
+- **Decisions** — decisions already made that the BRD relies on (with rationale and
+  date), plus decisions still owed before signoff.
+
+(Risks are potential; issues are realized. Keep them in separate buckets.)
 
 Two registers, same substance:
 
-- **In-doc (client-facing, measured):** two tables. Open Questions
-  (**Item | Why it matters**) and Risks (**Risk | Impact / consideration**).
-  Framed as items to resolve before signoff, not internal hedging. E.g. "Confirm
-  the rollover batch processing approach given expected data volumes" — not
-  "this will blow the 25s synchronous orchestration cap."
-- **Chat (internal-facing, blunt):** same items, but name platform constraints
-  and delivery risk directly. The chat version is where "this iterates a
-  variable-sized dataset synchronously and will hit the 25s cap" belongs.
+- **In-doc (client-facing, measured):** one small table per **non-empty** bucket,
+  each header styled `Heading3` (or bold) under the `Heading2` subsection. Omit any
+  bucket with no items — don't show an empty table. Suggested columns:
+  - Open Questions — **Item | Why it matters**
+  - Risks — **Risk | Impact | Mitigation / consideration**
+  - Actions — **Action | Owner | Target / status**
+  - Issues — **Item | Resolution needed**
+  - Decisions — **Decision | Rationale | Date**
+
+  Framed as items to resolve before signoff. E.g. "Confirm the rollover batch
+  processing approach given expected data volumes" — not "this will blow the
+  synchronous-orchestration cap."
+- **Chat (internal-facing, blunt):** same items grouped by the five buckets, naming
+  platform constraints and delivery risk directly. The chat version is where "this
+  iterates a variable-sized dataset synchronously and will hit the documented
+  sync-orchestration cap (see `extend-limits.md`)" belongs.
 
 Don't pad. A short honest list beats a long speculative one. Draw on real Extend
-platform constraints when the BRD's plan plausibly brushes them (BO/field/SI+MI
-caps, 25s synchronous-orchestration limit, WQL LIMIT/paging and the 100-row REST
-cap, deployment freeze windows, referential-integrity-at-delete), but only flag a
-constraint the design actually risks — not a generic checklist.
+platform constraints **from `references/extend-limits.md`** when the BRD's plan
+plausibly brushes them — but only flag a constraint the design actually risks, not a
+generic checklist. Assert a specific limit value only if it's in that file's
+**verified** zone; otherwise frame it as a question to confirm.
 
 Note: this format has no gold-standard example in `filled-example.md` (that BRD
 predates the review feature), so it's the one part of the skill not modeled on a

@@ -142,45 +142,105 @@ like "review this BRD," "what are the holes/gaps," "any risks or open items,"
 plain "draft the BRD" should not append a risks section.
 
 When asked, interrogate the whole BRD actively — don't just collect the `Open:` /
-`TBD` flags already in the text. Read each section against the others and against
-what a Workday Extend engagement actually needs, and surface:
+`TBD` flags already in the text. Read each section against the others, against what a
+Workday Extend engagement actually needs, and **against the documented platform
+limits** in `references/extend-limits.md` (run the full limits audit here — see
+"Checking the design against Extend limits"). The internal model is a full **RAID
+log plus Open Questions** — five buckets:
 
 - **Open Questions** — anything ambiguous, undecided, or assumed-without-
   confirmation: unspecified volumes or thresholds, undefined security roles,
   unconfirmed retention periods, integration error-handling not described,
   process flows missing a failure path, a stated behavior that contradicts another
-  section, app-platform constraints the design may trip (BO/field/SI+MI caps, the
-  25s synchronous-orchestration limit, WQL LIMIT/paging, deployment freeze
-  windows) when the BRD's plan plausibly brushes them.
+  section.
 - **Risks** — things that could derail delivery or go wrong in production:
-  performance/scale exposure, dependencies on client-side work or external
-  systems, sequencing/timeline risk, scope ambiguity that could expand, data-
-  migration or transition-year gaps.
+  performance/scale exposure (especially where the design plausibly brushes a limit
+  in `extend-limits.md`), dependencies on client-side work or external systems,
+  sequencing/timeline risk, scope ambiguity that could expand, data-migration or
+  transition-year gaps.
+- **Actions** — concrete follow-ups needed to resolve the open items: who needs to
+  decide, confirm, build, or provide data, and (where known) by when.
+- **Issues** — problems *already* present in the BRD or the plan: contradictions
+  between sections, a design that already exceeds a confirmed limit, a missing
+  section, a requirement that can't be met as written. (Risks are future; issues are
+  current.)
+- **Decisions** — decisions already made that the BRD depends on (with their
+  rationale), and decisions still owed before signoff.
+
+The client-facing in-doc section keeps the gentler name **"Open Questions &
+Risks"** (it stores all five buckets, but the label avoids alarming the client).
+See `references/section-guide.md` for the in-doc table layout per bucket.
 
 Deliver the findings in **two places**:
 
-1. **A chat summary** — internal-facing, blunt. Group as Open Questions and Risks.
-   For each item: what's unclear/risky, why it matters, and (for open questions)
-   the specific question to put to the client or team. This is for the consultant,
-   so it can name platform constraints and delivery risk directly.
+1. **A chat summary** — internal-facing, blunt. Group by the five buckets (Open
+   Questions, Risks, Actions, Issues, Decisions); omit any bucket that's empty
+   rather than padding it. For each item: what it is, why it matters, and (for open
+   questions/actions) who should answer or own it. This is for the consultant, so it
+   can name platform constraints and delivery risk directly — e.g. "this iterates a
+   variable-sized dataset synchronously and will hit the documented sync-orchestration
+   cap (see `extend-limits.md`)."
 2. **An "Open Questions & Risks" Appendix subsection in the BRD** — client-facing,
-   measured. Same substance, but framed as constructive open items and
-   considerations to resolve before signoff, not as internal hedging. Style its
-   header `Heading2` to match the other Appendix subsections. Two tables (Open
-   Questions; Risks) or two bulleted lists. If the review is part of a revision
-   round on an existing doc, insert this section as **tracked changes** like any
-   other edit.
+   measured. Same substance, but framed as constructive open items, considerations,
+   actions, and recorded decisions to resolve before signoff — not as internal
+   hedging. Style its header `Heading2` to match the other Appendix subsections. Use
+   one small table per non-empty bucket (see `references/section-guide.md` for the
+   exact columns). If the review is part of a revision round on an existing doc,
+   insert this section as **tracked changes** like any other edit.
 
-Keep the two registers distinct: the chat version can say "this will blow the 25s
-synchronous orchestration cap"; the in-doc version says "Confirm the rollover
-batch processing approach given expected data volumes." Never invent a risk to
-pad the list — an honest short list beats a padded one. See
-`references/section-guide.md` ("Open Questions & Risks") for format detail.
+Keep the two registers distinct: the chat version can say "this will blow the
+documented synchronous-orchestration cap"; the in-doc version says "Confirm the
+rollover batch processing approach given expected data volumes." Never invent a risk
+to pad the list — an honest short list beats a padded one. Cite a specific limit only
+when it's in the **verified** zone of `extend-limits.md`; if it's only a commonly-
+cited (unverified) constraint, frame it as a question to confirm, not a stated fact.
+See `references/section-guide.md` ("Open Questions & Risks") for format detail.
 
 ### 6. Validate and deliver
 
 Pack with validation on, then present the `.docx`. If validation fails, unpack,
 fix the XML, repack — don't paper over it.
+
+## Checking the design against Extend limits
+
+A Workday Extend app can be designed in a way that quietly breaches a platform limit
+(business-object/field counts, the synchronous-orchestration runtime window, WQL/REST
+paging and row caps, payload sizes, deployment windows, referential integrity at
+delete). Catching that in the BRD — before build — is one of this skill's jobs.
+
+The source of truth is `references/extend-limits.md`. It has a **verified** zone
+(human-confirmed limits, safe to assert), a **commonly-cited (unverified)** zone
+(prompts to check, never assert without confirming), and an **auto-extracted** zone
+regenerated by the crawler. Read it before flagging anything, and respect which zone
+a limit comes from.
+
+Two modes, by the timing decision for this skill:
+
+- **Proactive (every authoring/revision run) — light flags.** As you draft the
+  Processes, Integrations, Data Retention, and Appendix data-model content, watch for
+  designs that plausibly brush a limit in `extend-limits.md`: a process that iterates
+  a variable, client-stated volume synchronously; a read that could exceed a paging
+  cap; a data model approaching BO/field counts. When you spot one, add a brief
+  inline `Open:` flag in the relevant section (client-facing wording) **and** mention
+  it once in chat (blunt wording). Do **not** append a full risks section on a plain
+  authoring run — that's review-only. Keep it to genuine, design-specific hits; don't
+  run a generic checklist against every BRD.
+- **Full audit (on review, step 5).** Walk every documented limit in
+  `extend-limits.md` against the design systematically and route findings into the
+  RAID buckets (usually Risks and Open Questions). This is the exhaustive pass.
+
+In both modes: assert a specific number only if it's in the **verified** zone. For an
+unverified constraint, phrase it as a confirmation ("Confirm expected row volumes per
+rollover run against Extend's paging limits"), never as a stated cap. If a limit
+matters to a BRD and isn't verified yet, that's a cue to run the crawler / verify it
+and promote it.
+
+**Refreshing the limits reference.** `references/extend-limits.md` is maintained by
+`scripts/scrape_extend_limits.py`, an offline Playwright crawler over
+`developer.workday.com/documentation` (seed + discover). It's a human-run maintenance
+step, not part of a BRD session — see the script header for setup and usage. The
+crawler only rewrites the auto-extracted zone; the verified and commonly-cited zones
+are preserved.
 
 ## Craft rules (what separates a real BRD from filled boilerplate)
 
@@ -230,3 +290,9 @@ These are distilled from the worked example. Apply them throughout:
   section.
 - `references/filled-example.md` — the CER Mass EL Rollover BRD, the gold-standard
   worked example. Read it to calibrate voice and depth.
+- `references/extend-limits.md` — the source of truth for Workday Extend platform
+  limits (verified / commonly-cited / auto-extracted zones). Consult before flagging
+  any limit. Maintained by the crawler below.
+- `scripts/scrape_extend_limits.py` — offline Playwright crawler that refreshes the
+  auto-extracted zone of `extend-limits.md` from `developer.workday.com`. Human-run
+  maintenance tool; not invoked during a BRD session. See its header for setup.

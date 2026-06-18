@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($py = \\(Get-Command python -ErrorAction SilentlyContinue\\); if \\($py\\) { python --version; python -c \"import requests, bs4; print\\('requests+bs4 OK'\\)\" } else { \"python not found\" })",
+      "WebSearch",
+      "WebFetch(domain:developer.workday.com)",
+      "PowerShell(python \"c:\\\\Users\\\\AlexWill\\\\OneDrive - Invisors LLC\\\\Desktop\\\\Work_Folder\\\\Tooling\\\\ClaudeSkills\\\\extend-brd-files\\\\scripts\\\\scrape_extend_limits.py\" --help)",
+      "Bash(cat)",
+      "Bash(python _test_limits.py)",
+      "Bash(rm _test_limits.py)",
+      "Bash(python _diag.py)",
+      "Bash(rm _diag.py)"
+    ]
+  }
+}
