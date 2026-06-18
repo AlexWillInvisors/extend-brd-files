@@ -47,6 +47,15 @@ def read_frontmatter():
     version = re.search(r"^version:\s*(.+?)\s*$", block, re.MULTILINE)
     if not name:
         sys.exit("SKILL.md frontmatter is missing a 'name:' field.")
+
+    # Guard: the skill installer rejects descriptions longer than 1024 chars.
+    dm = re.search(r"^description:\s*>-?\s*\n(.*?)(?=^\S)", block + "\n", re.DOTALL | re.MULTILINE)
+    if dm:
+        desc = " ".join(ln.strip() for ln in dm.group(1).splitlines() if ln.strip())
+        if len(desc) > 1024:
+            sys.exit(f"SKILL.md description is {len(desc)} chars; the installer limit "
+                     f"is 1024. Trim it by {len(desc) - 1024}+ chars before packaging.")
+
     return name.group(1).strip(), (version.group(1).strip() if version else None)
 
 

@@ -38,7 +38,8 @@
       "Bash(python _rename2.py)",
       "Bash(rm _rename2.py)",
       "Bash(python _rename3.py)",
-      "Bash(rm _rename3.py)"
+      "Bash(rm _rename3.py)",
+      "Bash(python -)"
     ]
   }
 }

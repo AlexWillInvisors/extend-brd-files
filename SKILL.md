@@ -1,24 +1,22 @@
 ---
 name: extend-brd
 description: >-
-  Author or revise a Business Requirements Document (BRD) for a Workday Extend
-  (or Built on Workday) engagement, using the standard Invisors BRD template.
-  Use this skill WHENEVER the user wants to produce, draft, fill in, update, or
-  revise a BRD, requirements doc, or "the BRD" for an Extend / BoW app — including
-  when they hand over a scoping document, meeting notes, or existing app files to
-  turn into requirements, or ask to document an app's processes, integrations,
-  business objects, or security model in the client-facing BRD format. Trigger
-  even if the user says "requirements document," "the Forvis doc," "the CER BRD,"
-  or names a specific client/app rather than saying "BRD" explicitly. Also use
-  this skill to REVIEW an existing Extend BRD or its design for holes, gaps, open
-  questions, risks, or RAID items, and to check whether the design would breach
-  Workday Extend platform limits ("review this BRD," "what are we missing," "any
-  risks or open items," "build the RAID log," "does this design breach any Extend
-  limits").
-  Do NOT use for internal design docs, ROM/scoping estimates (that's the scoping
-  playbook), or non-Extend Word documents.
+  Author, revise, or review a Business Requirements Document (BRD) for a Workday
+  Extend / Built-on-Workday (BoW) engagement. Use this skill WHENEVER the user
+  wants to produce, draft, fill in, update, or revise a BRD or requirements doc
+  for an Extend / BoW app - including handing over a
+  scoping doc, meeting notes, or existing app files to turn into requirements, or
+  documenting an app's processes, integrations, business objects, or security
+  model in the client-facing format. Trigger even if the user says "requirements
+  document," "the Forvis doc," "the CER BRD," or just names a client or app. Also
+  use it to REVIEW or verify an Extend BRD or its design - for gaps, open
+  questions, risks, RAID items, a final accuracy/hallucination check, or whether a
+  design breaches Workday Extend platform limits ("review this BRD," "verify this
+  BRD," "check for hallucinations," "build the RAID log"). Do NOT use for internal
+  design docs, ROM or scoping estimates (the scoping playbook), or non-Extend Word
+  documents.
 license: Proprietary
-version: 1.1.0
+version: 1.2.0
 ---
 
 # Extend BRD authoring
@@ -250,7 +248,55 @@ when it's in the **verified** zone of `extend-limits.md`; if it's only a commonl
 cited (unverified) constraint, frame it as a question to confirm, not a stated fact.
 See `references/section-guide.md` ("Open Questions & Risks") for format detail.
 
-### 6. Validate and deliver
+### 6. Final accuracy review (verification pass) — opt-in
+
+**Distinct from step 5.** Step 5 surfaces client-facing open items/RAID; this is an
+**internal QA of the finished BRD for correctness, completeness, and — above all —
+fabrication.** Run it only when the user asks: "final review," "verify this BRD,"
+"check for hallucinations," "is this accurate," "make sure nothing is made up." Method:
+**self-audit the whole BRD first, then walk the user through ONLY the flagged items** —
+don't make them confirm what's already grounded.
+
+**A. Self-audit (silent pass over the whole document):**
+
+1. **Claim traceability — the anti-hallucination core.** Enumerate every concrete
+   factual claim: business-object and field names, security domains, integration
+   names/mechanisms (SOAP op + version, REST, EIB, WQL, O4I), record statuses, numeric
+   thresholds and volumes, retention periods, role names, and any cited Extend limit.
+   Map each to its source and label it:
+   - **Grounded** — traceable to a specific app file (name it, e.g. `orchestration/…`),
+     the scoping notes, or an explicit user/conversation confirmation.
+   - **Unverified** — traces to nothing concrete. **Treat as a suspected hallucination**
+     to confirm, source, soften to a question, or cut. A cited limit must trace to the
+     **verified** zone of `extend-limits.md`; one asserted from the unverified zone
+     counts as a hallucination here.
+2. **Internal consistency.** Cross-check sections: a status in Data Retention also
+   appears in the relevant Feature flow; an Appendix security domain matches the
+   Security section; an integration named in a Feature is in the Integrations table;
+   phase splits agree between Business Requirements and the Feature tables; repeated
+   numbers match.
+3. **Completeness.** Every backbone section present and either filled or explicitly
+   `TBD`/`Open:`; each Feature table fully filled with **no leftover stub boilerplate**
+   ("Use an active verb phrase," "Describe in one or two sentences"); diagram slots
+   replaced or explicitly pending; **no prior-engagement leakage** (`Promotion
+   Nomination`, `Payment Submission`, `[CLIENT]`, `DD-Month-Year`).
+4. **Mechanical integrity.** All placeholders replaced; `document.xml` validates;
+   cover/TOC/footer intact; a fresh BRD is plain content (not tracked changes — step 4).
+
+**B. Walk the user through the flagged items only.** Present a tight, grouped summary,
+not the whole BRD. For each: what it is, its section, why it's flagged
+(no source / inconsistent / incomplete / unverified limit), and the specific ask —
+e.g. "Confirm the $50k threshold; I found it in `orchestration/…` but want you to
+verify the value," or "I can't source the 7-year retention — confirm it, or I cut it /
+flag it `Open:`." **Default to the safe action when the user can't confirm: flag
+`Open:`/`TBD` or cut — never leave an unsourced assertion.** Apply answers as edits
+(plain content on a fresh BRD; tracked changes only on a user-supplied existing doc).
+
+**C. Close out.** Re-run the checks on the corrected doc and report a short, honest
+bill: claims grounded/confirmed, items corrected, anything still `Open:`. Never call
+the BRD "verified" while items remain unconfirmed — name what's still open.
+
+### 7. Validate and deliver
 
 Pack with validation on, then present the `.docx`. If validation fails, unpack,
 fix the XML, repack — don't paper over it.
