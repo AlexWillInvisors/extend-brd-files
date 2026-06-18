@@ -290,6 +290,9 @@ These are distilled from the worked example. Apply them throughout:
   section.
 - `references/filled-example.md` — the CER Mass EL Rollover BRD, the gold-standard
   worked example. Read it to calibrate voice and depth.
+- `references/raid-example.md` — worked example of the review output (Open Questions
+  & Risks / full RAID), both the internal chat register and the in-doc tables, grounded
+  in the same engagement. Read it before producing a review.
 - `references/extend-limits.md` — the source of truth for Workday Extend platform
   limits (verified / commonly-cited / auto-extracted zones). Consult before flagging
   any limit. Maintained by the crawler below.

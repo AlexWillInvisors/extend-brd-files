@@ -154,10 +154,12 @@ plausibly brushes them — but only flag a constraint the design actually risks,
 generic checklist. Assert a specific limit value only if it's in that file's
 **verified** zone; otherwise frame it as a question to confirm.
 
-Note: this format has no gold-standard example in `filled-example.md` (that BRD
-predates the review feature), so it's the one part of the skill not modeled on a
-real Invisors deliverable. Defer to any RAID/open-items format the team
-standardizes on if one exists.
+Note: this format is not in `filled-example.md` (that BRD predates the review
+feature). Instead, see **`references/raid-example.md`** for a worked example of both
+registers — the blunt internal chat summary and the measured in-doc tables — grounded
+in the same CER Mass EL Rollover engagement and the verified limits in
+`extend-limits.md`. It's illustrative, not a real deliverable's review; defer to any
+RAID/open-items format the team standardizes on if one exists.
 
 ## Cross-cutting craft
 
