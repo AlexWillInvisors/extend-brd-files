@@ -25,7 +25,7 @@ document — if they ever disagree, the file wins.
 |---|---|
 | App-name title (top of cover) | `Heading5` |
 | "Prepared for [CLIENT]" | `Subtitle` |
-| Section headers (Business Requirements, Processes, …) | `Heading1` |
+| Section headers (Business Requirements, Features, …) | `Heading1` |
 | Appendix subsections (UI Mockups, Business Objects, …) | `Heading2` |
 | TOC entries | `TOC1` / `TOC2` |
 
@@ -48,27 +48,33 @@ Body placeholders:
 | Location | Placeholder text to replace |
 |---|---|
 | Business Requirements | `Summary of our understanding of the business problems we are solving for and what the solution will bridge the gap for.` |
-| Process table — header cell | `Use an active verb phrase to describe this process` → `<N> — <active verb phrase>` |
-| Process table — Goal | `Describe in one or two sentences the scope and content of the use case. Do not describe the flow of events, business or data validation rules.` |
-| Process table — Business Event/Trigger | `These are triggers that simulate activity within the business. …` |
-| Process table — Primary Actor(s) | `Identify the actor initiating the use case` |
-| Process table — Actor(s) | `Identify the secondary actor` |
-| Process table — Pre-conditions | `Identify pre-conditions that must be met …` |
-| Process table — Post-conditions | `Describe how the use case is successfully complete. …` |
-| Process table — Flow of Events | `Describe what the actor does and how the system responds` |
-| Process flow diagram slot | `[[Insert Process Flow Diagram]]` |
+| Feature table — header cell | `Use an active verb phrase to describe this feature` → `<N> — <active verb phrase>` (the table's first row label is **Feature #** / **Feature**) |
+| Feature table — Goal | `Describe in one or two sentences the scope and content of the use case. Do not describe the flow of events, business or data validation rules.` |
+| Feature table — Business Event/Trigger | `These are triggers that simulate activity within the business. …` |
+| Feature table — Primary Actor(s) | `Identify the actor initiating the use case` |
+| Feature table — Actor(s) | `Identify the secondary actor` |
+| Feature table — Pre-conditions | `Identify pre-conditions that must be met …` |
+| Feature table — Post-conditions | `Describe how the use case is successfully complete. …` |
+| Feature table — Flow of Events | `Describe what the actor does and how the system responds` |
+| Feature flow diagram slot | `[[Insert Feature Flow Diagram]]` |
 | Integrations | `The following integrations are required to transmit data between Workday and external systems.` (keep/adapt the lead sentence; fill the empty table rows) |
 | Data Retention | `Store key payment data (status, method, …)` — example text from a different engagement; **replace entirely** |
 | Security Requirements | `Security roles to facilitate the application's processes will be created/managed include. [[Client]] will own creation …` (fill the empty role table, or set `TBD`) |
-| Language Translations | `The Extend app will be available in US English, US Spanish, and French-Canadian. …` — **stock text; confirm before keeping**, often needs the actual language set |
+| Language Translations | `The Extend app will be available in US English, US Spanish, and French-Canadian. …` — **stock text; do NOT keep by default.** Replace with an **English-only** statement ("The Extend app will be available in US English.") unless a specific multi-language set is explicitly confirmed for the engagement |
 | Mobile App Compatibility | `Extend app functionality is not needed on the Workday Mobile App.` — stock; confirm |
 | Appendix → UI Mockups | `[Insert images]` |
 | Appendix → Business Objects / Security Domains | The example rows are from a different engagement (Promotion Nomination…); **replace with this app's objects**, or state "No new business objects are introduced" when true |
 
-**The Processes section ships THREE stub tables.** Fill one per real process. To
-add more, clone an entire `<w:tbl>` block (the use-case table) in the XML. To
-remove a stub, delete its `<w:tbl>` and the following `[[Insert Process Flow
-Diagram]]` paragraph.
+**The Features section ships THREE stub use-case tables.** These are vertical
+label/value tables (`Feature #`, Goal, Business Event/Trigger, Primary Actor(s),
+Actor(s), Pre-conditions, Post-conditions, Flow of Events) — **not** header+data-row
+tables, so `fill_table_rows` does NOT fit them. Use **`fill_process_table(tbl,
+fields)`** to fill one (it matches each row by label and supports multi-paragraph
+Flow of Events). Fill one table per real feature. To add more, use
+**`add_process_table()`** (clones a table with valid fresh ids) — do NOT hand-clone a
+`<w:tbl>` and hand-generate `w14:paraId`s; random ids can land ≥ `0x80000000`, which
+pack-time validation rejects. To remove a stub, delete its `<w:tbl>` and the
+following `[[Insert Feature Flow Diagram]]` paragraph.
 
 ## Mechanics
 
@@ -77,10 +83,14 @@ Diagram]]` paragraph.
 ```bash
 cp assets/brd-template.docx working.docx
 python /mnt/skills/public/docx/scripts/office/unpack.py working.docx unpacked/
-# edit unpacked/word/document.xml with the Edit tool (string replacement) —
-#   replace placeholder runs with real content; clone/delete <w:tbl> for processes
+# edit unpacked/word/document.xml — prefer brd_edit.py (set_run_text, fill_table_rows,
+#   fill_process_table / add_process_table) over raw string edits
 python /mnt/skills/public/docx/scripts/office/pack.py unpacked/ output.docx --original working.docx
 ```
+
+**`pack.py` writes NO output file when validation fails** — so a later `validate.py`
+on the expected path reports "file does not exist," which is confusing. If pack
+reports a validation failure, fix the XML and repack; don't chase the missing file.
 
 - Use the **Edit tool for string replacement**, not a Python script (per the docx
   skill). The unpack step pretty-prints and merges runs, so placeholder text is
@@ -164,6 +174,20 @@ Operations:
   in `rows`, fill each cell. The anchor can be header-cell text OR the intro
   sentence before the table. **One row per item.**
 - `fill_empty_cell(para_id, runs)` — fill a specific empty cell by its `w14:paraId`.
+- `find_process_tables()` — return the use-case (Feature) tables, identified
+  structurally (they have a Goal row and a Flow of Events row).
+- `fill_process_table(tbl, fields)` — fill a use-case table's value cells by row
+  label. `fields` maps labels (the title row `Feature #`/`Feature`, Goal, Business
+  Event/Trigger, Primary Actor(s), Actor(s), Pre-conditions, Post-conditions, Flow of
+  Events) to values. A value may be a string, a list of strings (one paragraph each),
+  a list of `(text, bold)` runs (one paragraph), or a list of run-lists (one paragraph
+  per step — this is how Flow of Events gets one bolded step per paragraph).
+- `add_process_table(after=None, template=None)` — clone a use-case table with VALID
+  fresh `w14` ids and insert it; returns the new table to `fill_process_table()`. Add
+  a `[[Insert Feature Flow Diagram]]` paragraph after it yourself if needed.
+- `clone_block_with_fresh_ids(el)` — deep-copy any block and regenerate every
+  `w14:paraId`/`w14:textId` in the valid range (`< 0x80000000`). Use this for any
+  hand cloning so pack-time validation doesn't reject out-of-range ids.
 - `tracked_replace(old, new)` — tracked-change replace: `old` → `<w:del>`, `new` →
   `<w:ins>`, authored as Claude, surrounding text preserved.
 - `tracked_insert_paragraphs_after(needle, paras)` — insert whole new paragraphs as
@@ -175,12 +199,13 @@ Operations:
 - `lint()` — asserts every `<w:r>` and `<w:p>` sits in a legal parent. `save()`
   calls it automatically; call it yourself mid-edit to fail fast.
 
-**The benign validator quirk:** after packing, the strict OOXML validator reports
-one error on `word/intelligence2.xml`
-("intelligence: No matching global declaration"). This is a Microsoft extension
-namespace present in the **original template**, not caused by your edits — it's
-harmless and Word opens the file fine. Only treat `word/document.xml` errors as
-real. Confirm document.xml is clean; ignore the intelligence2.xml line.
+**The benign validator quirk (environment-dependent):** on some validator versions,
+after packing, the strict OOXML validator reports one error on
+`word/intelligence2.xml` ("intelligence: No matching global declaration"). This is a
+Microsoft extension namespace present in the **original template**, not caused by your
+edits — it's harmless and Word opens the file fine. (On other validator versions it
+doesn't appear at all.) Either way, only treat `word/document.xml` errors as real:
+confirm document.xml is clean and ignore any intelligence2.xml line.
 
 ## Table-filling patterns (handled by the helper; gotchas if you hand-edit)
 
@@ -194,8 +219,9 @@ you have the gotcha list if you ever must hand-edit XML directly (not recommende
   Replace both, identically. A uniqueness-checked scripted replace (assert count
   == 2) is safer than two manual edits that can drift.
 
-- **Three process stub tables, NOT identical.** The template ships three use-case
-  tables. The row *labels* (Goal, Business Event/Trigger, etc.) and most cell
+- **Three Feature stub tables, NOT identical** (handled for you by
+  `fill_process_table`; this matters only if you hand-edit). The template ships three
+  use-case tables. The row *labels* (Goal, Business Event/Trigger, etc.) and most cell
   boilerplate repeat ×3 — but the **Goal cell differs per table**: table 1 has the
   generic "Describe in one or two sentences…" boilerplate, while tables 2 and 3
   carry **pre-filled goals from a prior engagement** ("Payment Submission via

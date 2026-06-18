@@ -6,6 +6,13 @@ Read it to calibrate how a filled BRD reads — especially the problem-first Bus
 Requirements opening, the 'problems this bridges' bullets, the numbered bolded Flow
 of Events steps, the Appendix rule tables, and the explicit Open:/TBD flags.
 
+> **Naming note:** this example predates the **Processes → Features** rename. Where it
+> says "Processes" / "Process #" / "Process Flow," the current template and skill use
+> **Features** / **Feature #** / **Feature Flow**. The example also renders Flow of
+> Events as a single run-on cell; the current default is **one paragraph per step**
+> (the run-on form remains acceptable for very short flows). Calibrate on its voice and
+> depth — not these two presentational details.
+
 The rendered .docx (not this markdown) is what the client receives; this text shows
 the *content shape*, not the styling (cover, Lato, TOC, footer come from the template).
 

@@ -81,46 +81,35 @@ delivery risk directly.
 ## Register 2 — In-doc subsection (client-facing, measured)
 
 Goes in the BRD as an Appendix subsection titled **"Open Questions & Risks"**
-(`Heading2`). One small table per non-empty bucket (`Heading3` headers). Same
-substance as above, framed as constructive items to resolve before signoff — note the
-softened wording (e.g. "confirm expected volumes," not "this will blow the 25s cap").
+(`Heading2`). **Default: a single consolidated grid** — one table, one row per item,
+the **Type** column naming the bucket (Open Question / Risk / Action / Issue /
+Decision) and rationale/impact folded into the Description. Label with **bold runs**,
+not `Heading3` (this template's Heading3 is too faint). Same substance as the chat
+register, framed as constructive items to resolve before signoff — note the softened
+wording (e.g. "confirm expected volumes," not "this will blow the 25s cap").
 
-### Open Questions
+| Type | Item / Description | Owner | Target / Date |
+| --- | --- | --- | --- |
+| Open Question | Confirm expected peak ELs/projects per filtered grid view and per rollover batch — sizes the pagination/batch thresholds and validates grid responsiveness at scale. | Invisors + client | Before build |
+| Open Question | Confirm the tenant's Workday Extend edition and current Extend object instance usage — rollover and transition-year uploads draw on the shared instance allowance. | Client admin | Open |
+| Open Question | Confirm whether Single EL Rollover (Convert Proposal page) runs interactively or in the background. | Development | Open |
+| Open Question | Confirm any required retention period for rollover-run history (O4I Integration Messages). | Invisors + client | Before signoff |
+| Risk | Assembling the selection grid for very large filtered sets may affect interactive responsiveness (slow/timed-out load at peak). Mitigation: right-size pagination by project count; performance-test before go-live. | Delivery team | Before go-live |
+| Risk | Rollover + transition-year volumes consume the tenant's shared Extend instance allowance, reducing headroom for other apps. Mitigation: confirm edition + current usage; plan against headroom. | Client admin | Open |
+| Risk | Pagination/batch thresholds are set only after performance testing — tuning sits on the path to the November go-live. Mitigation: schedule testing early; thresholds are admin-adjustable. | Delivery team | Before go-live |
+| Risk | The Phase 2 correction workspace is net-new functionality (additional build effort). Mitigation: keep Phase 2 post-go-live; confirm phasing. | Invisors | Phase 2 |
+| Issue | Security Requirements is currently TBD — a required section is unresolved and blocks signoff. | Client security + Invisors | Before signoff |
+| Action | Define rollover, correction-workspace, and admin security roles/domains. | Client security + Invisors | Before signoff |
+| Decision | Bulk rollover runs as an asynchronous (background) orchestration — supports large batches without interactive time limits. | — | Jun 2025 |
+| Decision | No new business objects introduced; the feature extends the existing CER app (stays within app component limits). | — | Jun 2025 |
+| Decision | Pagination/batch thresholds are configurable app settings, adjustable without a deployment. | — | Jun 2025 |
 
-| Item | Why it matters |
-| --- | --- |
-| Confirm expected peak ELs/projects per filtered grid view and per rollover batch. | Sizes the pagination and batch thresholds and validates grid responsiveness at scale. |
-| Confirm the tenant's Workday Extend edition and current Extend object instance usage. | Rollover volume and transition-year uploads draw on the tenant's shared Extend instance allowance. |
-| Confirm whether Single EL Rollover from the Convert Proposal page runs interactively or in the background. | Determines the responsiveness pattern for a single roll. |
-| Confirm any required retention period for rollover-run history (O4I Integration Messages). | Drives the Data Retention requirement. |
-| Confirm the security roles and domains for the rollover task and Phase 2 correction workspace. | Resolves the Security Requirements section before signoff. |
-
-### Risks & Considerations
-
-| Risk / consideration | Impact | Mitigation |
-| --- | --- | --- |
-| Assembling the selection grid for very large filtered sets may affect interactive responsiveness. | Slow or timed-out grid load at peak volumes. | Right-size pagination by project count; performance-test before go-live. |
-| Rollover and transition-year volumes consume the tenant's shared Extend instance allowance. | Reduced headroom for other Extend apps in the tenant. | Confirm edition and current usage; plan volume against available headroom. |
-| Pagination/batch thresholds are set after performance testing. | Tuning effort sits on the path to the November go-live. | Schedule performance testing early; thresholds are admin-adjustable post-go-live. |
-| The Phase 2 correction workspace is net-new functionality. | Additional build effort distinct from Phase 1. | Keep Phase 2 post-go-live as planned; confirm phasing. |
-| Go-live depends on transition-year source data loaded via EIB. | Timeline/quality dependency on client-prepared data. | Agree data-readiness dates and validation up front. |
-
-### Actions
-
-| Action | Owner | Target / status |
-| --- | --- | --- |
-| Performance-test and set pagination and batch limits. | Delivery team | Before go-live |
-| Define rollover, correction-workspace, and admin security roles/domains. | Client security + Invisors | Before signoff |
-| Confirm Extend edition and current instance usage. | Client admin | Open |
-| Confirm execution mode of grid-assembly and single-roll orchestrations. | Development | Open |
-
-### Decisions
-
-| Decision | Rationale | Date |
-| --- | --- | --- |
-| Bulk rollover runs as an asynchronous (background) orchestration. | Supports large batches without interactive time constraints. | Jun 2025 |
-| No new business objects are introduced; the feature extends the existing CER app. | Reuses delivered objects and stays within app component limits. | Jun 2025 |
-| Pagination and batch thresholds are configurable app settings, adjustable without a deployment. | Lets administrators tune for performance after go-live. | Jun 2025 |
+**Alternative (long RAID): one small table per non-empty bucket.** When several
+buckets each carry many items, per-bucket tables can read better than one long grid.
+Same content, split by bucket — Open Questions (**Item | Why it matters**), Risks
+(**Risk | Impact | Mitigation**), Actions (**Action | Owner | Target/status**),
+Issues (**Item | Resolution needed**), Decisions (**Decision | Rationale | Date**) —
+each label a **bold run**, not `Heading3`.
 
 > Note: this is illustrative, not a transcription of the real Forvis deliverable's
 > review (that BRD predates the review feature). Use it for shape and register, and

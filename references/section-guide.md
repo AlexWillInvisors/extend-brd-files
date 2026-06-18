@@ -22,25 +22,28 @@ The most important section — it frames everything. Structure:
 Keep it client-readable: plain language, bottom-line-first. This is leadership-
 facing prose.
 
-## 2. Processes
+## 2. Features
 
-One use-case table per process. The fixed row set (don't add/remove rows):
+One use-case table per feature. This section is titled **Features** in the template
+(renamed from the older "Processes"); the table's first row label is **Feature #**.
+Fill each table with `brd_edit.fill_process_table` (it matches rows by label). The
+fixed row set (don't add/remove rows):
 
 | Row | Content |
 |---|---|
-| Process # / title | `<N> — <active verb phrase>` (e.g. "1 — Bulk EL Rollover: select and roll over engagement letters (Phase 1)") |
+| Feature # / title | `<N> — <active verb phrase>` (e.g. "1 — Bulk EL Rollover: select and roll over engagement letters (Phase 1)") |
 | Goal | 1–2 sentences: scope and outcome. NOT the step-by-step flow. |
-| Business Event/Trigger | What prompts the process to run |
+| Business Event/Trigger | What prompts the feature to run |
 | Primary Actor(s) | Who initiates |
 | Actor(s) | Secondary actors (incl. system actors like "Validation orchestration (system actor)") |
 | Pre-conditions | What must be true to start |
 | Post-conditions | What's true on success; alternative successful terminations |
-| Flow of Events | **Numbered, bolded steps**: **1. Filter.** … **2. Review the grid.** … Each step says what the actor does and how the system responds. Reference the Appendix for detailed rules ("See Appendix for the eligibility rules") rather than inlining everything. |
+| Flow of Events | **Numbered, bolded steps — one per paragraph (default).** A paragraph each: **1. Filter.** <what the actor does / how the system responds>, then a new paragraph **2. Review the grid.** …, etc. Pass this to `fill_process_table` as a list of run-lists (one per step), each typically a bold step label + a plain body run. A single run-on paragraph (**1. … 2. … 3. …**) is an acceptable alternative for very short flows. Reference the Appendix for detailed rule sets rather than inlining them. |
 
 A multi-phase feature gets one table per phase/path (the example has three:
-Phase 1 bulk, Phase 2 validate/resolve, single-EL). Replace each
-`[[Insert Process Flow Diagram]]` with the real diagram or leave as an explicit
-pending placeholder.
+Phase 1 bulk, Phase 2 validate/resolve, single-EL); use `add_process_table` to add
+tables beyond the three stubs. Replace each `[[Insert Feature Flow Diagram]]` with
+the real diagram or leave as an explicit pending placeholder.
 
 ## 3. Integrations
 
@@ -73,9 +76,13 @@ security is finalized — do that rather than invent roles.
 
 ## 7. Language Translations
 
-Stock sentence about US English / US Spanish / French-Canadian and using the
-user's Workday language preference. **Confirm the actual language set** — only
-keep the stock languages if they're correct for this engagement.
+**Default to US English only** when the language set isn't explicitly defined. The
+template ships a stock three-language sentence (US English / US Spanish /
+French-Canadian) — do **not** keep it by default; replace it with an English-only
+statement (e.g. "The Extend app will be available in US English."). Only list
+additional languages when the engagement explicitly confirms them — in that case
+name exactly those languages and note the app respects the user's Workday language
+preference. Never carry the stock multi-language list forward unconfirmed.
 
 ## 8. Mobile App Compatibility
 
@@ -89,8 +96,11 @@ row (e.g. "1.0"); leave approver/date blank for the client.
 
 ## 10. Appendix
 
-Fixed subsections (`Heading2`): **UI Mockups, Model Components, Business Objects,
-Security Domains.** Plus any project-specific subsections added here.
+**These four subsections ALREADY ship in the template as `Heading2` headings** — UI
+Mockups, Model Components, Business Objects, Security Domains. **Edit the existing
+headings; do not add new ones.** (Adding a second "Model Components" heading is an
+easy mistake — it's already there between UI Mockups and Business Objects.) Only
+**project-specific** subsections are *inserted* (as new `Heading2`), after these four.
 
 - **UI Mockups**: `[Insert images]` — insert mockups or leave as explicit pending
   placeholder.
@@ -131,18 +141,21 @@ The five buckets:
 
 Two registers, same substance:
 
-- **In-doc (client-facing, measured):** one small table per **non-empty** bucket,
-  each header styled `Heading3` (or bold) under the `Heading2` subsection. Omit any
-  bucket with no items — don't show an empty table. Suggested columns:
-  - Open Questions — **Item | Why it matters**
-  - Risks — **Risk | Impact | Mitigation / consideration**
-  - Actions — **Action | Owner | Target / status**
-  - Issues — **Item | Resolution needed**
-  - Decisions — **Decision | Rationale | Date**
-
-  Framed as items to resolve before signoff. E.g. "Confirm the rollover batch
-  processing approach given expected data volumes" — not "this will blow the
-  synchronous-orchestration cap."
+- **In-doc (client-facing, measured) — single consolidated grid (default):** one
+  table with columns **Type · Item / Description · Owner · Target / Date**, one row per
+  item, the Type cell naming the bucket (Open Question / Risk / Action / Issue /
+  Decision) and rationale/impact folded into the Description. This reads better than
+  several tiny tables when buckets have only a few rows each.
+  - *Alternative (long RAID):* one small table per **non-empty** bucket — Open
+    Questions (**Item | Why it matters**), Risks (**Risk | Impact | Mitigation**),
+    Actions (**Action | Owner | Target/status**), Issues (**Item | Resolution
+    needed**), Decisions (**Decision | Rationale | Date**). Omit empty buckets.
+  - **Label with a bold run, not `Heading3`** — whether it's the grid's column
+    headers or per-bucket table headers, this template's `Heading3` is only faintly
+    differentiated from body text, so use a bold run for the labels.
+  - Framed as items to resolve before signoff. E.g. "Confirm the rollover batch
+    processing approach given expected data volumes" — not "this will blow the
+    synchronous-orchestration cap."
 - **Chat (internal-facing, blunt):** same items grouped by the five buckets, naming
   platform constraints and delivery risk directly. The chat version is where "this
   iterates a variable-sized dataset synchronously and will hit the documented
@@ -167,7 +180,7 @@ RAID/open-items format the team standardizes on if one exists.
   never confabulate.
 - Cut unverified claims (numbers, retention periods, behaviors) or flag them
   `Open:` — don't assert them.
-- Reference the Appendix from the Processes section instead of inlining detailed
+- Reference the Appendix from the Features section instead of inlining detailed
   rule sets in the Flow of Events.
 - **One row per item in every table.** Each business object, security domain,
   integration, report, and role gets its own row — never collapse a set into a

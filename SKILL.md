@@ -10,12 +10,15 @@ description: >-
   business objects, or security model in the client-facing BRD format. Trigger
   even if the user says "requirements document," "the Forvis doc," "the CER BRD,"
   or names a specific client/app rather than saying "BRD" explicitly. Also use
-  this skill to REVIEW an existing Extend BRD for holes, gaps, open questions, or
-  risks ("review this BRD," "what are we missing," "any risks or open items").
+  this skill to REVIEW an existing Extend BRD or its design for holes, gaps, open
+  questions, risks, or RAID items, and to check whether the design would breach
+  Workday Extend platform limits ("review this BRD," "what are we missing," "any
+  risks or open items," "build the RAID log," "does this design breach any Extend
+  limits").
   Do NOT use for internal design docs, ROM/scoping estimates (that's the scoping
   playbook), or non-Extend Word documents.
 license: Proprietary
-version: 1.0.0
+version: 1.1.0
 ---
 
 # Extend BRD authoring
@@ -74,6 +77,21 @@ will catch a confabulated requirement instantly, so the failure mode to avoid is
 inventing content to fill a section. When you don't have it, that's an `Open:` /
 `TBD` flag in the doc (see craft rules), not a guess.
 
+**On a pure reverse-doc run, the gaps are predictable — batch them up front.** App
+files carry the *how* (Features, Integrations, model, security domains) but never the
+*why* or the *scale*. So a reverse-doc run almost always gaps on exactly three
+things: **Business Requirements framing (the problem + volume/scale), Data Retention,
+and the language set** — and almost never on Features/Integrations/Appendix. Ask
+those few leadership-level questions in one batch at the start, rather than
+discovering them section by section.
+
+**Reading `.orchestration` files fast.** They're dense single-line JSON ASTs. Don't
+read the whole tree — grep for `SendWorkdayApiRequest` (the `path`/`method` nodes
+give you the integration calls, e.g. a SOAP `Submit_Project_Request`) and
+`CreateTextTemplate` (request bodies, where threshold/branch logic like a `$50k`
+hierarchy split lives). That recovers the integration intent in a fraction of the
+time.
+
 If the user handed over app files, read them to ground the Appendix
 (business objects, security domains) and the Integrations section in what's
 actually built — don't describe a data model from memory when the
@@ -84,7 +102,7 @@ actually built — don't describe a data model from memory when the
 The template has a **fixed section backbone** (do not reorder or rename):
 
 1. **Business Requirements** — the problem, its scale, and what the solution bridges
-2. **Processes** — one use-case table per process
+2. **Features** — one use-case table per feature (the template heading is "Features")
 3. **Integrations** — table of cross-system data flows
 4. **Reporting Requirements** — table
 5. **Data Retention Requirements** — prose
@@ -98,7 +116,7 @@ The template has a **fixed section backbone** (do not reorder or rename):
 backbone. The worked example adds Appendix subsections like "Eligibility rules,"
 "Rollover field rules," and "grid data model." Phase-1/Phase-2 splits, multi-path
 flows, and similar feature structure live **inside** the Business Requirements
-prose and the Process tables — they are not new top-level sections.
+prose and the Feature tables — they are not new top-level sections.
 
 The **Open Questions & Risks** section produced by a review (step 5) is likewise
 an Appendix subsection, never a new top-level section — it must not disturb the
@@ -116,7 +134,7 @@ exact placeholder tokens, the style IDs, and the find-and-replace mechanics are 
 "Table-filling patterns" section. Use the Edit tool directly for the **unique
 prose placeholders** (title, Business Requirements, Data Retention, Security
 intro, Language, Mobile). For the **repeated/duplicated structures** — the
-title block (appears twice), the three process tables (whose Goal cells are NOT
+title block (appears twice), the three feature tables (whose Goal cells are NOT
 uniform — tables 2 and 3 carry pre-filled goals from a prior engagement), and the
 empty-cell or prior-engagement-seeded tables (Integrations, Reporting, Signoff,
 Appendix BOs, Security Domains) — a small uniqueness-checked Python pass over
@@ -126,15 +144,19 @@ Appendix BOs, Security Domains) — a small uniqueness-checked Python pass over
   client; `DD-Month-Year` → the date.
 - Business Requirements: replace the one-line "Summary of our understanding…"
   placeholder with the real problem/scale/bridge prose.
-- Processes: the template ships **three** stub use-case tables with boilerplate
-  cell text ("Use an active verb phrase…", "Describe in one or two sentences…").
-  Fill one table per real process; delete extra stubs or add more by cloning the
-  table structure. Replace each `[[Insert Process Flow Diagram]]` with the real
-  diagram, or leave it as an explicit placeholder if the diagram is pending.
+- Features: the template ships **three** stub use-case tables (vertical label/value,
+  not header+data-row). Fill one table per real feature with
+  `brd_edit.fill_process_table` (matches rows by label; pass Flow of Events as a list
+  of run-lists, one paragraph per step). Delete extra stubs, or add more with
+  `add_process_table` (clones a table with valid fresh ids — don't hand-clone and
+  hand-number `w14:paraId`s). Replace each `[[Insert Feature Flow Diagram]]` with the
+  real diagram, or leave it as an explicit placeholder if the diagram is pending.
 - Remaining sections: replace the example/boilerplate prose and empty table rows
-  with real content, or the section's stock text where it genuinely applies (the
-  Language Translations and Mobile App Compatibility stock sentences are often
-  correct as-is — confirm, don't assume).
+  with real content, or the section's stock text where it genuinely applies. Mobile
+  App Compatibility's stock "not needed" sentence is often correct as-is — confirm,
+  don't assume. **Language Translations defaults to US English only**: replace the
+  template's three-language stock sentence with an English-only statement unless a
+  specific language set is explicitly confirmed for the engagement.
 - After packing, the TOC page numbers won't auto-update (Word recalculates on
   open). That's expected; don't try to hand-fix them.
 
@@ -150,6 +172,16 @@ patterns. Make minimal, surgical edits — mark only what changes, preserve the
 surrounding `<w:rPr>` formatting. Edit **in place** in the same document across
 rounds; don't spin up a parallel "v2" unless asked. Content-accuracy corrections
 take priority over stylistic ones.
+
+**Tracked changes vs. plain edits — get this right or pack fails.** Tracked changes
+are ONLY for revising a BRD the **user supplied as an existing file** (where the
+baseline genuinely is that file). On a **fresh authoring run** — including a
+single-pass *draft + review* (see step 5) — write everything as **plain content**,
+not tracked changes. Why: `pack.py` validates by stripping Claude's tracked changes
+and checking the result matches the **original template**; if the rest of the doc has
+plain fills, the stripped text won't match and pack fails with "Document text doesn't
+match after removing Claude's tracked changes." Never mix plain fills with tracked-
+change insertions in the same fresh document.
 
 ### 5. Review for holes and risks (only when explicitly asked)
 
@@ -200,10 +232,15 @@ Deliver the findings in **two places**:
 2. **An "Open Questions & Risks" Appendix subsection in the BRD** — client-facing,
    measured. Same substance, but framed as constructive open items, considerations,
    actions, and recorded decisions to resolve before signoff — not as internal
-   hedging. Style its header `Heading2` to match the other Appendix subsections. Use
-   one small table per non-empty bucket (see `references/section-guide.md` for the
-   exact columns). If the review is part of a revision round on an existing doc,
-   insert this section as **tracked changes** like any other edit.
+   hedging. Style its header `Heading2` to match the other Appendix subsections.
+   Default to a **single consolidated grid** (Type · Item/Description · Owner ·
+   Target/Date); per-bucket tables are an acceptable alternative for a long RAID. Use
+   **bold runs**, not `Heading3`, for the labels (see `references/section-guide.md` and
+   `references/raid-example.md`). **Tracked vs. plain (critical — see step 4):** if
+   this review is a **single-pass draft + review** of a fresh BRD, insert the section
+   as **plain content**. Use **tracked changes** ONLY when reviewing a BRD the user
+   supplied as an existing file. Mixing plain fills with tracked insertions in one
+   fresh document makes `pack.py` fail validation.
 
 Keep the two registers distinct: the chat version can say "this will blow the
 documented synchronous-orchestration cap"; the in-doc version says "Confirm the
@@ -234,7 +271,7 @@ a limit comes from.
 Two modes, by the timing decision for this skill:
 
 - **Proactive (every authoring/revision run) — light flags.** As you draft the
-  Processes, Integrations, Data Retention, and Appendix data-model content, watch for
+  Features, Integrations, Data Retention, and Appendix data-model content, watch for
   designs that plausibly brush a limit in `extend-limits.md`: a process that iterates
   a variable, client-stated volume synchronously; a read that could exceed a paging
   cap; a data model approaching BO/field counts. When you spot one, add a brief
@@ -269,11 +306,13 @@ These are distilled from the worked example. Apply them throughout:
   pain and the number first.
 - **Close Business Requirements with a "problems this solution bridges" bullet
   list** — each bullet a concrete gap the solution closes.
-- **Process tables use the fixed row set** (Process # / Goal / Business
+- **Feature tables use the fixed row set** (Feature # / Goal / Business
   Event/Trigger / Primary Actor(s) / Actor(s) / Pre-conditions / Post-conditions /
-  Flow of Events). In **Flow of Events**, write numbered, bolded steps
-  (**1. Filter.** … **2. Review.** …), describing what the actor does and how the
-  system responds — not a vague paragraph.
+  Flow of Events). In **Flow of Events**, write numbered, bolded steps **one per
+  paragraph** (default): **1. Filter.** <…> as one paragraph, **2. Review.** <…> as
+  the next, each describing what the actor does and how the system responds — not a
+  vague paragraph, and not a single run-on (the run-on form is an acceptable
+  alternative only for very short flows).
 - **Flag unknowns explicitly as `Open:` or `TBD`, inline, in bold.** The example
   writes "**Open:** Confirm whether any rollover-run audit trail…" and "Security
   Requirements: TBD." Never silently omit a section you lack info for, and never

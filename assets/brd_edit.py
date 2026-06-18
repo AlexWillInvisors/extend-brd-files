@@ -42,6 +42,7 @@ ALWAYS run doc.lint() before save() — it asserts every <w:r> sits in a legal p
 and every <w:p> is a legal child, catching structure errors before pack-time.
 """
 
+import re
 import sys
 from lxml import etree
 
@@ -72,6 +73,7 @@ class BRD:
         self.root = self.tree.getroot()
         self._ins_id = 1000  # tracked-change id counter
         self._merged = False  # set once merge_runs() has run (lazy fallback)
+        self._w14 = 0x200000  # counter for fresh w14:paraId/textId (kept < 0x80000000)
 
     # ---- run-merge (self-sufficiency: do what the docx skill's unpack.py does) ----
     # A placeholder authored in Word is often split across several <w:r> runs that
@@ -294,6 +296,131 @@ class BRD:
             if node is el:
                 return i
         return -1
+
+    # ---- process (use-case) tables + safe block cloning ----
+    # The use-case tables are vertical label/value tables (not header+data-row), so
+    # fill_table_rows doesn't fit them. These helpers fill them by row label and clone
+    # whole tables with VALID fresh ids (hand-rolled random paraIds can land >=
+    # 0x80000000, which pack-time validation rejects — this owns id generation instead).
+    W14 = "http://schemas.microsoft.com/office/word/2010/wordml"
+
+    def _w14_attr(self, name):
+        return f"{{{self.W14}}}{name}"
+
+    def _fresh_w14_id(self):
+        """A fresh w14 id as 8 upper-hex chars, guaranteed < 0x80000000."""
+        self._w14 += 1
+        return format(self._w14 & 0x7FFFFFFF, "08X")
+
+    def clone_block_with_fresh_ids(self, el):
+        """Deep-copy any block (e.g. a <w:tbl>) and regenerate every w14:paraId /
+        w14:textId so the copy is unique and in the valid id range. Returns the clone
+        (not yet inserted)."""
+        import copy
+        clone = copy.deepcopy(el)
+        for node in clone.iter():
+            for attr in (self._w14_attr("paraId"), self._w14_attr("textId")):
+                if node.get(attr) is not None:
+                    node.set(attr, self._fresh_w14_id())
+        return clone
+
+    @staticmethod
+    def _canon_label(s):
+        return re.sub(r"\s+", " ", (s or "").strip().lower()).rstrip(".")
+
+    def _row_first_cell_text(self, tr):
+        tcs = tr.findall(w("tc"))
+        if not tcs:
+            return ""
+        return "".join(t.text or "" for t in tcs[0].iter(w("t")))
+
+    def find_process_tables(self):
+        """Return the use-case tables (identified structurally: they carry both a
+        'Goal' row and a 'Flow of Events' row), in document order."""
+        out = []
+        for tbl in self.root.iter(w("tbl")):
+            cl = {self._canon_label(self._row_first_cell_text(tr)) for tr in tbl.findall(w("tr"))}
+            if "goal" in cl and "flow of events" in cl:
+                out.append(tbl)
+        return out
+
+    _TITLE_KEYS = {"feature", "feature #", "process", "process #", "number", "title", "#"}
+
+    def fill_process_table(self, tbl, fields):
+        """Fill a use-case table's value cells by matching each row's label.
+
+        `fields` maps a row label to a value; matching is case-insensitive on the
+        label. Recognized labels: the title row ("Feature #"/"Feature"/"title"), Goal,
+        Business Event/Trigger, Primary Actor(s), Actor(s), Pre-conditions,
+        Post-conditions, Flow of Events. A value may be:
+          - a str                       -> one paragraph
+          - a list of str               -> one paragraph per string
+          - a list of (text, bold)      -> one paragraph with those runs
+          - a list of [(text,bold), …]  -> one paragraph per inner run-list
+        The last form is how Flow of Events gets one bolded-and-bodied paragraph per
+        step. `tbl` is a table element (e.g. from find_process_tables())."""
+        norm = {self._canon_label(k): v for k, v in fields.items()}
+        for tr in tbl.findall(w("tr")):
+            tcs = tr.findall(w("tc"))
+            if len(tcs) < 2:
+                continue
+            label = self._canon_label(self._row_first_cell_text(tr))
+            val = norm.get(label)
+            if val is None and label in self._TITLE_KEYS:
+                for tk in ("feature #", "feature", "process #", "process", "number", "title"):
+                    if tk in norm:
+                        val = norm[tk]
+                        break
+            if val is None:
+                continue
+            self._set_cell(tcs[1], val)
+        return self
+
+    def _normalize_cell(self, val):
+        """Coerce a fill value into a list of paragraphs, each a list of (text, bold)."""
+        if isinstance(val, str):
+            return [[(val, False)]]
+        if isinstance(val, (list, tuple)):
+            if not val:
+                return [[("", False)]]
+            first = val[0]
+            if isinstance(first, str):
+                return [[(s, False)] for s in val]
+            if isinstance(first, tuple):
+                return [list(val)]
+            if isinstance(first, list):
+                return [list(p) for p in val]
+        return [[(str(val), False)]]
+
+    def _set_cell(self, tc, val, sz="20"):
+        """Replace a table cell's paragraphs with the given value, preserving the
+        cell's first-paragraph formatting (<w:pPr>)."""
+        import copy
+        paras = self._normalize_cell(val)
+        existing = tc.findall(w("p"))
+        ppr = existing[0].find(w("pPr")) if existing else None
+        for p in existing:
+            tc.remove(p)
+        for para in paras:
+            np = etree.SubElement(tc, w("p"))
+            if ppr is not None:
+                np.append(copy.deepcopy(ppr))
+            for text, bold in para:
+                np.append(self._run(text, bold=bold, sz=sz))
+        return self
+
+    def add_process_table(self, after=None, template=None):
+        """Clone a use-case table (the last existing one, or `template`) with fresh
+        ids and insert it after `after` (defaults to right after the cloned table).
+        Returns the new <w:tbl> so you can fill_process_table() it. Note: this clones
+        the table only — add a '[[Insert Feature Flow Diagram]]' paragraph after it
+        yourself if the section needs one."""
+        tbls = self.find_process_tables()
+        src = template if template is not None else (tbls[-1] if tbls else None)
+        assert src is not None, "add_process_table: no use-case table to clone"
+        new = self.clone_block_with_fresh_ids(src)
+        (after if after is not None else src).addnext(new)
+        return new
 
     # ---- tracked changes ----
     def _next_id(self):
