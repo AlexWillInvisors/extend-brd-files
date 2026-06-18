@@ -25,7 +25,8 @@
       "Bash(python _smoke4.py)",
       "Bash(rm _smoke4.py)",
       "Bash(python _smoke5.py)",
-      "Bash(rm _smoke5.py)"
+      "Bash(rm _smoke5.py)",
+      "PowerShell(python \"c:\\\\Users\\\\AlexWill\\\\OneDrive - Invisors LLC\\\\Desktop\\\\Work_Folder\\\\Tooling\\\\ClaudeSkills\\\\extend-brd-files\\\\scripts\\\\build_package.py\")"
     ]
   }
 }
