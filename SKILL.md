@@ -16,7 +16,7 @@ description: >-
   design docs, ROM or scoping estimates (the scoping playbook), or non-Extend Word
   documents.
 license: Proprietary
-version: 1.2.2
+version: 1.2.3
 ---
 
 # Extend BRD authoring

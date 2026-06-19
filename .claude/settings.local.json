@@ -58,7 +58,19 @@
       "Bash(python -m pip install --quiet python-docx)",
       "Bash(python _build_doc.py)",
       "Bash(rm _build_doc.py)",
-      "Bash(rm -rf _media_tmp)"
+      "Bash(rm -rf _media_tmp)",
+      "Read(//c/Users/AlexWill/Downloads/**)",
+      "Read(//c/Users/AlexWill/AppData/Local/Temp/claude//**)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(mkdir -p /c/Users/AlexWill/AppData/Local/Temp/claude/c--Users-AlexWill-OneDrive---Invisors-LLC-Desktop-Work-Folder-Tooling-ClaudeSkills-extend-brd-files/a360db9f-8e55-4b01-933c-d750e39caa2c/scratchpad/brd_unpack)",
+      "Bash(python -c \"import zipfile; zipfile.ZipFile\\(r'C:\\\\\\\\Users\\\\\\\\AlexWill\\\\\\\\Downloads\\\\\\\\Travere_Performance_Review_BRD.docx'\\).extractall\\('.'\\)\")",
+      "Bash(python /c/Users/AlexWill/AppData/Local/Temp/claude/c--Users-AlexWill-OneDrive---Invisors-LLC-Desktop-Work-Folder-Tooling-ClaudeSkills-extend-brd-files/a360db9f-8e55-4b01-933c-d750e39caa2c/scratchpad/analyze.py /c/Users/AlexWill/AppData/Local/Temp/claude/c--Users-AlexWill-OneDrive---Invisors-LLC-Desktop-Work-Folder-Tooling-ClaudeSkills-extend-brd-files/a360db9f-8e55-4b01-933c-d750e39caa2c/scratchpad/brd_unpack/word/document.xml)",
+      "Bash(python /c/Users/AlexWill/AppData/Local/Temp/claude/c--Users-AlexWill-OneDrive---Invisors-LLC-Desktop-Work-Folder-Tooling-ClaudeSkills-extend-brd-files/a360db9f-8e55-4b01-933c-d750e39caa2c/scratchpad/heal.py)",
+      "Bash(python /c/Users/AlexWill/AppData/Local/Temp/claude/c--Users-AlexWill-OneDrive---Invisors-LLC-Desktop-Work-Folder-Tooling-ClaudeSkills-extend-brd-files/a360db9f-8e55-4b01-933c-d750e39caa2c/scratchpad/repack.py)",
+      "Bash(python -c \"import zipfile,sys; z=zipfile.ZipFile\\(r'C:\\\\Users\\\\AlexWill\\\\Downloads\\\\Travere_Performance_Review_BRD_fixed.docx'\\); print\\('bad arcname slashes:', any\\('\\\\\\\\\\\\\\\\' in n for n in z.namelist\\(\\)\\)\\); print\\('parts:', len\\(z.namelist\\(\\)\\)\\)\")",
+      "Bash(python /c/Users/AlexWill/AppData/Local/Temp/claude/c--Users-AlexWill-OneDrive---Invisors-LLC-Desktop-Work-Folder-Tooling-ClaudeSkills-extend-brd-files/a360db9f-8e55-4b01-933c-d750e39caa2c/scratchpad/verify.py)",
+      "Bash(python scripts/build_package.py)",
+      "Bash(python /c/Users/AlexWill/AppData/Local/Temp/claude/c--Users-AlexWill-OneDrive---Invisors-LLC-Desktop-Work-Folder-Tooling-ClaudeSkills-extend-brd-files/a360db9f-8e55-4b01-933c-d750e39caa2c/scratchpad/smoke.py)"
     ]
   }
 }

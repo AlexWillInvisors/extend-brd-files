@@ -184,7 +184,14 @@ Operations:
   per step — this is how Flow of Events gets one bolded step per paragraph).
 - `add_process_table(after=None, template=None)` — clone a use-case table with VALID
   fresh `w14` ids and insert it; returns the new table to `fill_process_table()`. Add
-  a `[[Insert Feature Flow Diagram]]` paragraph after it yourself if needed.
+  a `[[Insert Feature Flow Diagram]]` paragraph after it yourself — one per feature,
+  directly after that feature's table, not bunched at the end of the section.
+- `separate_adjacent_tables()` — backstop against the table-merge bug: two `<w:tbl>`
+  with no paragraph between them merge into one table in Word (the second loses its
+  header accent colour and fuses with the first). This injects an empty paragraph
+  between any touching tables. `save()` calls it automatically, so even if features
+  end up adjacent they will not merge — but still place each feature's flow-diagram
+  paragraph between its table and the next so the separation is meaningful, not blank.
 - `clone_block_with_fresh_ids(el)` — deep-copy any block and regenerate every
   `w14:paraId`/`w14:textId` in the valid range (`< 0x80000000`). Use this for any
   hand cloning so pack-time validation doesn't reject out-of-range ids.
@@ -197,7 +204,8 @@ Operations:
   (lazily) by the text-anchor methods when an anchor isn't found, so you rarely call
   it directly; it's idempotent and semantically invisible (no rendered-text change).
 - `lint()` — asserts every `<w:r>` and `<w:p>` sits in a legal parent. `save()`
-  calls it automatically; call it yourself mid-edit to fail fast.
+  calls it automatically (after `separate_adjacent_tables()`); call it yourself
+  mid-edit to fail fast.
 
 **The benign validator quirk (environment-dependent):** on some validator versions,
 after packing, the strict OOXML validator reports one error on

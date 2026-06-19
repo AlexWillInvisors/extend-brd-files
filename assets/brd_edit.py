@@ -413,6 +413,29 @@ class BRD:
         """An empty paragraph — used to separate tables (see add_process_table)."""
         return etree.Element(w("p"))
 
+    def separate_adjacent_tables(self):
+        """Self-heal: inject an empty paragraph between any two directly-adjacent
+        <w:tbl> siblings, anywhere in the document.
+
+        Two <w:tbl> with no block element between them MERGE into one table in Word —
+        the second table's rows continue the first's banding, so its header row loses
+        its accent colour and the two tables visually fuse. There is never a legitimate
+        reason for touching tables in this template, so this is always safe to apply.
+        It is the backstop that makes correct output independent of whether the fill
+        path used add_process_table(); save() calls it automatically. Returns the count
+        of separators inserted."""
+        inserted = 0
+        # collect first, mutate after: addnext() shifts siblings mid-iteration
+        pairs = []
+        for tbl in self.root.iter(w("tbl")):
+            nxt = tbl.getnext()
+            if nxt is not None and nxt.tag == w("tbl"):
+                pairs.append(tbl)
+        for tbl in pairs:
+            tbl.addnext(self._blank_para())
+            inserted += 1
+        return inserted
+
     def add_process_table(self, after=None, template=None):
         """Clone a use-case table (the last existing one, or `template`) with fresh
         ids and insert it, ALWAYS separated from neighbouring tables by a paragraph.
@@ -567,6 +590,7 @@ class BRD:
         return self
 
     def save(self, path=None):
+        self.separate_adjacent_tables()  # backstop: never let two tables touch & merge
         self.lint()
         out = path or self.path
         self.tree.write(out, xml_declaration=True, encoding="UTF-8", standalone=True)
