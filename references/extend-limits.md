@@ -95,12 +95,21 @@ affected requirement as `Open:`/`TBD` instead.
 
 - **Referential integrity at delete** — instances referenced by other instances
   cannot be deleted while referenced; affects data-cleanup and retention design.
-  _Verify exact behavior._ Source: TODO.
-- **Deployment freeze / release windows** — tenant deployment and Workday release
-  windows constrain when changes can ship. _Verify current policy._ Source: TODO.
+  Not found on the public developer site via search (2026-06-18) — likely documented
+  only in gated Community/model docs. _Needs a `developer.workday.com` source URL to
+  promote._ Source: TODO.
 - **WQL/REST per-page row caps for paged reads** — zone 1 has the 1M-row WQL ceiling;
-  the per-*page* size for paged REST/WQL reads (commonly cited ~100) wasn't cleanly
-  captured. _Confirm the page-size default/max for the API you're using._ Source: TODO.
+  the per-*page* size for paged reads is the open question. **Almost certainly mirrors
+  the verified Graph API paging — default 20, maximum 100 per page** (standard Workday
+  REST uses a `limit` param, max 100). Treat as ~100/page pending a `developer.workday.com`
+  REST/WQL paging page to confirm. Source: TODO (cross-ref Graph API limits in zone 1).
+- **Deployment / release windows** (delivery-timeline consideration, not a platform
+  governor limit) — Workday ships **feature releases in the second week of March and
+  September**, each preceded by a **~5-week preview/test window**; **weekly service
+  updates** (bug fixes / off-cycle enhancements) land in a **weekend maintenance
+  window**. Relevant to BRD sequencing/timeline RAID, not to design caps. Source:
+  Workday release-management guidance (workday.com) — confirm the current schedule for
+  the engagement; this is cadence guidance, not a `developer.workday.com` limit.
 
 <!-- ===== AUTO-GENERATED BELOW THIS LINE — regenerated on every crawl; do not hand-edit ===== -->
 
