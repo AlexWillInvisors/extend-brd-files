@@ -1,0 +1,103 @@
+<title>Using the Extend BRD skill</title>
+<style>
+  :root{--teal:#005865;--teal2:#007788;--ink:#1c2b2f;--muted:#5b6b70;--line:#d7e0e2;--bg:#f4f7f8;}
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       color:var(--ink);line-height:1.4;background:var(--bg);}
+  .page{max-width:1000px;margin:0 auto;padding:28px 30px 36px;background:#fff;}
+  header{border-bottom:3px solid var(--teal);padding-bottom:10px;margin-bottom:14px;}
+  h1{font-size:1.5rem;margin:0 0 2px;color:var(--teal);}
+  .sub{color:var(--muted);font-size:.92rem;margin:0;}
+  h2{font-size:.82rem;text-transform:uppercase;letter-spacing:.06em;color:var(--teal2);
+     margin:0 0 6px;border-bottom:1px solid var(--line);padding-bottom:3px;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 26px;}
+  section{margin-bottom:13px;}
+  p{margin:0 0 6px;font-size:.9rem;}
+  ul{margin:0 0 4px;padding-left:18px;font-size:.9rem;}
+  li{margin:2px 0;}
+  .modes li{margin:4px 0;}
+  b,strong{color:var(--ink);}
+  code{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:.5px 5px;
+       font-family:"SF Mono",Consolas,Menlo,monospace;font-size:.82rem;color:var(--teal);}
+  .tag{color:var(--teal2);font-weight:600;}
+  .foot{margin-top:14px;border-top:1px solid var(--line);padding-top:8px;color:var(--muted);font-size:.78rem;}
+  .full{grid-column:1 / -1;}
+  @media (max-width:720px){.grid{grid-template-columns:1fr;}}
+</style>
+
+<div class="page">
+  <header>
+    <h1>Using the Extend BRD skill</h1>
+    <p class="sub">Draft, revise, review, and verify client-facing Business Requirements Documents for Workday&nbsp;Extend / Built-on-Workday apps — filled into the standard Invisors template. &nbsp;·&nbsp; skill: <code>extend-brd</code></p>
+  </header>
+
+  <section class="full">
+    <h2>Start it</h2>
+    <p>Type <code>/extend-brd</code>, or just ask in plain language — it triggers on BRD / requirements-doc work even if you don't say "BRD" (e.g. <em>"turn these notes into a BRD," "document this app's processes,"</em> or naming a client/app). Give it <strong>one of three inputs</strong>: a scoping doc / meeting notes, a live working conversation, or the app's files (<code>model/</code>, <code>presentation/</code>, <code>orchestration/</code>) to reverse-document.</p>
+  </section>
+
+  <div class="grid">
+    <section>
+      <h2>What to expect</h2>
+      <ul>
+        <li><strong>It asks first.</strong> It assesses your inputs and asks a tight batch of gap questions up front — answer them; it will not invent the "why."</li>
+        <li><strong>It drafts into the real template</strong> and delivers a <code>.docx</code> (cover, Lato fonts, TOC, footer preserved).</li>
+        <li><strong>It flags limits.</strong> Designs that brush a documented Extend platform limit get called out as you go.</li>
+        <li><strong>Unknowns become <span class="tag">Open:</span>/<span class="tag">TBD</span></strong> — that's correct behavior, not a gap in quality.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>The gap questions it will ask</h2>
+      <p>These are the things files and notes almost never carry — have answers ready:</p>
+      <ul>
+        <li>Business problem + <strong>volume / scale</strong></li>
+        <li>Security <strong>role owners &amp; user counts</strong></li>
+        <li><strong>Data retention</strong> for the records it creates</li>
+        <li><strong>Language</strong> set (defaults to US English only)</li>
+        <li>Whether <strong>mobile</strong> access is needed</li>
+      </ul>
+    </section>
+
+    <section class="modes">
+      <h2>Four things you can ask for</h2>
+      <ul>
+        <li><strong>Draft</strong> — produce a new BRD from your inputs.</li>
+        <li><strong>Revise</strong> — hand it an existing BRD; it edits in place as <strong>tracked changes</strong> (author "Claude") to accept/reject.</li>
+        <li><strong>Review</strong> <span class="tag">(ask for it)</span> — <em>"review this BRD / build the RAID log"</em>: surfaces Open Questions + RAID (Risks, Actions, Issues, Decisions) — measured in the doc, blunt in chat.</li>
+        <li><strong>Verify</strong> <span class="tag">(ask for it)</span> — <em>"verify this BRD / check for hallucinations"</em>: traces every claim to a source and walks you through anything unverified.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Get the best results</h2>
+      <ul>
+        <li><strong>Hand over the actual app files</strong> when reverse-documenting — grounded beats guessed.</li>
+        <li><strong>Answer the gap questions</strong> — that's where accuracy comes from.</li>
+        <li><strong>Run the verification pass before sending to a client</strong> — it catches fabricated numbers and claims.</li>
+        <li><strong>Don't paste the whole conversation into the client doc</strong> — it writes forward-looking requirements, not a transcript.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>What it won't do (by design)</h2>
+      <ul>
+        <li>Invent volumes, retention periods, roles, or limits it can't source.</li>
+        <li>Assert a platform limit unless it's verified — otherwise it asks you to confirm.</li>
+        <li>Produce internal design docs or ROM / scoping estimates (different deliverable).</li>
+        <li>Rebuild the template's cover or TOC — it edits the real template.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>About the output</h2>
+      <ul>
+        <li>A <code>.docx</code> in the Invisors template — open it in Word once and the <strong>TOC page numbers recalculate</strong> (stale numbers beforehand are expected).</li>
+        <li>The section formerly called "Processes" is titled <strong>Features</strong>.</li>
+        <li>Revisions arrive as tracked changes; fresh drafts arrive as plain content.</li>
+      </ul>
+    </section>
+  </div>
+
+  <p class="foot"><strong>Maintainers only:</strong> the Extend-limits reference is refreshed by a Playwright crawler (<code>scripts/scrape_extend_limits.py</code>) and the installable package is built with <code>scripts/build_package.py</code> — neither is needed for normal use. See <code>TESTING.md</code> to test a new build.</p>
+</div>

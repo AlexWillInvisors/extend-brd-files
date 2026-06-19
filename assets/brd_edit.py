@@ -409,17 +409,37 @@ class BRD:
                 np.append(self._run(text, bold=bold, sz=sz))
         return self
 
+    def _blank_para(self):
+        """An empty paragraph — used to separate tables (see add_process_table)."""
+        return etree.Element(w("p"))
+
     def add_process_table(self, after=None, template=None):
         """Clone a use-case table (the last existing one, or `template`) with fresh
-        ids and insert it after `after` (defaults to right after the cloned table).
-        Returns the new <w:tbl> so you can fill_process_table() it. Note: this clones
-        the table only — add a '[[Insert Feature Flow Diagram]]' paragraph after it
-        yourself if the section needs one."""
+        ids and insert it, ALWAYS separated from neighbouring tables by a paragraph.
+        Returns the new <w:tbl> so you can fill_process_table() it.
+
+        Critical: two adjacent <w:tbl> with no paragraph between them MERGE into one
+        table in Word (the second inherits the first's banding/shading). So this
+        inserts after the paragraph that follows the source table (usually its flow-
+        diagram slot) when there is one, and otherwise injects a separator paragraph —
+        and guarantees a paragraph follows the clone too. Add a real
+        '[[Insert Feature Flow Diagram]]' paragraph after it yourself if the section
+        needs one."""
         tbls = self.find_process_tables()
         src = template if template is not None else (tbls[-1] if tbls else None)
         assert src is not None, "add_process_table: no use-case table to clone"
         new = self.clone_block_with_fresh_ids(src)
-        (after if after is not None else src).addnext(new)
+        if after is None:
+            nxt = src.getnext()
+            after = nxt if (nxt is not None and nxt.tag == w("p")) else src
+        if after.tag == w("tbl"):              # anchor is a table -> need a separator
+            sep = self._blank_para()
+            after.addnext(sep)
+            after = sep
+        after.addnext(new)
+        nn = new.getnext()                     # guarantee a paragraph follows the clone
+        if nn is None or nn.tag == w("tbl"):
+            new.addnext(self._blank_para())
         return new
 
     # ---- tracked changes ----

@@ -16,7 +16,7 @@ description: >-
   design docs, ROM or scoping estimates (the scoping playbook), or non-Extend Word
   documents.
 license: Proprietary
-version: 1.2.1
+version: 1.2.2
 ---
 
 # Extend BRD authoring
@@ -77,11 +77,14 @@ inventing content to fill a section. When you don't have it, that's an `Open:` /
 
 **On a pure reverse-doc run, the gaps are predictable — batch them up front.** App
 files carry the *how* (Features, Integrations, model, security domains) but never the
-*why* or the *scale*. So a reverse-doc run almost always gaps on exactly three
-things: **Business Requirements framing (the problem + volume/scale), Data Retention,
-and the language set** — and almost never on Features/Integrations/Appendix. Ask
-those few leadership-level questions in one batch at the start, rather than
-discovering them section by section.
+*why* or the *scale*. So a reverse-doc run (and most notes-only runs) almost always
+gaps on the same leadership-level items: **Business Requirements framing (the problem
++ volume/scale), Data Retention, the language set, the security-role owners/counts,
+and whether mobile access is needed** — and almost never on
+Features/Integrations/Appendix. Ask that batch in one go at the start, rather than
+discovering them section by section. Confirm mobile explicitly even though it usually
+resolves to the stock "not needed on the Workday Mobile App" — don't silently assume
+it.
 
 **Reading `.orchestration` files fast.** They're dense single-line JSON ASTs. Don't
 read the whole tree — grep for `SendWorkdayApiRequest` (the `path`/`method` nodes

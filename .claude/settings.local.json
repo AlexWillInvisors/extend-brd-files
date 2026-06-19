@@ -39,7 +39,26 @@
       "Bash(rm _rename2.py)",
       "Bash(python _rename3.py)",
       "Bash(rm _rename3.py)",
-      "Bash(python -)"
+      "Bash(python -)",
+      "Bash(python _inspect_eer.py)",
+      "Bash(rm _inspect_eer.py)",
+      "Bash(python _cover.py)",
+      "Bash(rm _cover.py)",
+      "Bash(python _coverdeep.py)",
+      "Bash(rm _coverdeep.py)",
+      "Bash(python _allshapes.py)",
+      "Bash(rm _allshapes.py)",
+      "Bash(python _inset.py)",
+      "Bash(rm _inset.py)",
+      "Bash(python _cover_fix.py)",
+      "Bash(rm _cover_fix.py)",
+      "Bash(python _cover_text.py)",
+      "Bash(rm _cover_text.py)",
+      "Bash(python \"scripts/build_package.py\")",
+      "Bash(python -m pip install --quiet python-docx)",
+      "Bash(python _build_doc.py)",
+      "Bash(rm _build_doc.py)",
+      "Bash(rm -rf _media_tmp)"
     ]
   }
 }
